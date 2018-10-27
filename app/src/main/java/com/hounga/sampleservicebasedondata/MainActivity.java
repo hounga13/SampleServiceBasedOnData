@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import com.google.firebase.firestore.*;
 import com.hounga.sampleservicebasedondata.entity.Quote;
 import com.hounga.sampleservicebasedondata.presenter.quote.QuoteAdapter;
 
@@ -13,9 +14,11 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
-    private ArrayList<Quote> list;
-    private RecyclerView recyclerView;
+    private ArrayList<Quote> list = new ArrayList<>(0);
     private QuoteAdapter adapter;
+    private RecyclerView recyclerView;
+    private FirebaseFirestore firestore;
+
     RecyclerView.LayoutManager layoutManager;
 
     @Override
@@ -33,12 +36,27 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);*/
 
         //데이터 준비
-        list = new ArrayList<>();
-        list.add(new Quote("공부 안하면 더울 때 더운데서 일하고 추울 때 추운데서 일한다.","박명수"));
-        list.add(new Quote("시작은 시작일 뿐이다.","박명수"));
-        list.add(new Quote("늦었다고 생각할대가 늦은 것이다.","박명수"));
-        list.add(new Quote("어려운 길은 길이 아니다.","박명수"));
-        list.add(new Quote("고생끝에 골병 든다.","박명수"));
+        firestore = FirebaseFirestore.getInstance();
+        firestore.collection("QuoteCollection")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots,
+                                        @Nullable FirebaseFirestoreException e) {
+                        list.clear();
+
+                        if (queryDocumentSnapshots != null) {
+                            for (QueryDocumentSnapshot snapshot : queryDocumentSnapshots) {
+                                list.add(new Quote(
+                                        String.valueOf(snapshot.get("quote")),
+                                        String.valueOf(snapshot.get("quoteTrans")),
+                                        String.valueOf(snapshot.get("author")),
+                                        String.valueOf(snapshot.get("authorTrans"))));
+                            }
+                        }
+
+                        adapter.notifyDataSetChanged();
+                    }
+                });
 
         //Log.d(TAG, "result :"+list.get(1).getQuote());
 
